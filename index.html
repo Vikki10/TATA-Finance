@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0057a3">
+<title>Tata Capital - Two Wheeler Finance</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; -webkit-tap-highlight-color:transparent; }
+  body { background:#f4f6f9; padding:12px; color:#333; }
+  .container { max-width:1300px; margin:auto; }
+  header { background:linear-gradient(135deg,#0057a3,#0077cc); color:#fff; padding:16px; border-radius:12px; margin-bottom:14px; text-align:center; }
+  header h1 { font-size:18px; }
+  header p { font-size:11px; opacity:0.9; margin-top:3px; }
+
+  .notif-bar { display:flex; gap:6px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+  .notif-bar button { padding:7px 11px; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; }
+  .btn-enable { background:#28a745; color:#fff; }
+  .btn-enable:disabled { background:#888; cursor:not-allowed; }
+  .btn-remind { background:#ff9800; color:#fff; }
+
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(105px,1fr)); gap:8px; margin-bottom:14px; }
+  .stat-card { background:#fff; padding:11px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08); text-align:center; }
+  .stat-card h3 { font-size:19px; color:#0057a3; }
+  .stat-card p { font-size:10px; color:#777; margin-top:2px; }
+  .stat-card.today h3 { color:#e6a700; }
+  .stat-card.overdue h3 { color:#dc3545; }
+
+  .form-box { background:#fff; padding:14px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:14px; }
+  .form-box h2 { font-size:15px; margin-bottom:10px; color:#0057a3; }
+  .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:9px; }
+  .form-grid .full { grid-column:1/-1; }
+  label { font-size:10px; color:#666; display:block; margin-bottom:3px; font-weight:600; }
+  input, select, textarea { padding:10px; border:1px solid #ccc; border-radius:6px; font-size:14px; width:100%; font-family:inherit; background:#fff; }
+  textarea { resize:vertical; min-height:50px; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:#0077cc; }
+  button { padding:10px 15px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; }
+  .btn-add { background:#0057a3; color:#fff; margin-top:9px; }
+  .btn-add:hover { background:#003f7a; }
+
+  .toolbar { display:flex; gap:7px; margin-bottom:10px; flex-wrap:wrap; }
+  .toolbar input, .toolbar select { flex:1; min-width:130px; }
+
+  .table-wrap { overflow-x:auto; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08); -webkit-overflow-scrolling:touch; }
+  table { width:100%; border-collapse:collapse; background:#fff; min-width:850px; }
+  th, td { padding:9px; text-align:left; font-size:12px; border-bottom:1px solid #eee; vertical-align:top; }
+  th { background:#0057a3; color:#fff; white-space:nowrap; font-size:11px; }
+  tr:hover { background:#f9fbff; }
+
+  .badge { padding:3px 8px; border-radius:20px; font-size:10px; font-weight:600; white-space:nowrap; }
+  .booked { background:#d4f5dd; color:#0a7a2f; }
+  .pending { background:#ffe0e0; color:#c00000; }
+
+  .fdate { font-weight:600; font-size:11px; white-space:nowrap; }
+  .fdate.overdue { color:#dc3545; }
+  .fdate.today { color:#e6a700; }
+  .fdate.future { color:#555; }
+  .fdate.none { color:#bbb; font-weight:400; }
+
+  .notes-cell { max-width:150px; font-size:11px; color:#555; }
+  .notes-cell.empty-note { color:#bbb; font-style:italic; }
+
+  .actions button { padding:5px 7px; font-size:10px; margin-right:2px; margin-bottom:2px; }
+  .edit { background:#ffc107; color:#000; }
+  .delete { background:#dc3545; color:#fff; }
+  .empty { text-align:center; padding:25px; color:#999; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🏍️ Tata Capital - Two Wheeler Finance</h1>
+    <p>Customer Booking & Follow-up Management</p>
+    <div class="notif-bar">
+      <button class="btn-enable" id="enableBtn" onclick="enableNotifications()">🔔 Enable Notifications</button>
+      <button class="btn-remind" onclick="notifyTodayFollowups(true)">📢 Remind Today</button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card"><h3 id="totalCount">0</h3><p>Total</p></div>
+    <div class="stat-card"><h3 id="bookedCount">0</h3><p>Booked</p></div>
+    <div class="stat-card"><h3 id="pendingCount">0</h3><p>Pending</p></div>
+    <div class="stat-card today"><h3 id="todayCount">0</h3><p>Today</p></div>
+    <div class="stat-card overdue"><h3 id="overdueCount">0</h3><p>Overdue</p></div>
+  </div>
+
+  <div class="form-box">
+    <h2 id="formTitle">➕ Add New Customer</h2>
+    <div class="form-grid">
+      <div><label>Customer Name</label><input type="text" id="name" placeholder="Full name"></div>
+      <div><label>Mobile Number</label><input type="tel" id="number" placeholder="10 digits" maxlength="10"></div>
+      <div><label>Bike Model</label><input type="text" id="bike" placeholder="e.g. Splendor Plus"></div>
+      <div><label>Status</label>
+        <select id="status">
+          <option value="Booked">Booked</option>
+          <option value="Pending">Pending</option>
+        </select>
+      </div>
+      <div><label>Follow-up Date</label><input type="date" id="followup"></div>
+      <div class="full"><label>Notes / Remarks</label>
+        <textarea id="notes" placeholder="e.g. Loan docs pending, called - will visit tomorrow..."></textarea>
+      </div>
+    </div>
+    <button class="btn-add" id="submitBtn" onclick="addCustomer()">Add Customer</button>
+    <button class="btn-add" id="cancelBtn" style="background:#777; display:none;" onclick="cancelEdit()">Cancel</button>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="🔍 Search name / number / bike / notes..." oninput="renderTable()">
+    <select id="filter" onchange="renderTable()">
+      <option value="All">All Status</option>
+      <option value="Booked">Booked Only</option>
+      <option value="Pending">Pending Only</option>
+      <option value="Today">📅 Today Follow-up</option>
+      <option value="Overdue">⚠️ Overdue Follow-up</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Name</th><th>Mobile</th><th>Bike Model</th><th>Status</th><th>Follow-up</th><th>Notes</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let customers = JSON.parse(localStorage.getItem('tc_customers_v3')) || [];
+let editId = null;
+let notifEnabled = false;
+
+function save() { localStorage.setItem('tc_customers_v3', JSON.stringify(customers)); }
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+/* ---------- NOTIFICATIONS ---------- */
+function updateEnableBtn() {
+  const btn = document.getElementById('enableBtn');
+  if (!('Notification' in window)) { btn.textContent = '❌ Not supported'; btn.disabled = true; return; }
+  if (Notification.permission === 'granted') { btn.textContent = '✅ Enabled'; btn.disabled = true; notifEnabled = true; }
+  else if (Notification.permission === 'denied') { btn.textContent = '🚫 Blocked'; btn.disabled = true; }
+  else { btn.textContent = '🔔 Enable Notifications'; btn.disabled = false; }
+}
+
+function enableNotifications() {
+  if (!('Notification' in window)) { alert('Browser notifications support చేయదు'); return; }
+  Notification.requestPermission().then(perm => {
+    updateEnableBtn();
+    if (perm === 'granted') {
+      new Notification('Tata Capital App', { body: 'Notifications enabled! ✅' });
+      notifyTodayFollowups(false);
+    }
+  });
+}
+
+function notifyTodayFollowups(manual) {
+  const t = todayStr();
+  const todayList = customers.filter(c => c.followup === t);
+  const overdueList = customers.filter(c => c.followup && c.followup < t);
+  if (todayList.length === 0 && overdueList.length === 0) {
+    if (manual) alert('ఈరోజు లేదా overdue follow-ups ఏమీ లేవు ✅');
+    return;
+  }
+  const total = todayList.length + overdueList.length;
+  let body = '';
+  if (todayList.length) body += `📅 Today: ${todayList.length}`;
+  if (overdueList.length) body += (body?' | ':'') + `⚠️ Overdue: ${overdueList.length}`;
+  const names = [...todayList, ...overdueList].slice(0,5).map(c => c.name).join(', ');
+  const more = total > 5 ? ` +${total-5} more` : '';
+  if (notifEnabled || Notification.permission === 'granted') {
+    new Notification(`🔔 Follow-ups: ${total}`, { body: body + '\n' + names + more });
+  } else if (manual) {
+    alert('Notifications enable చేయండి.\n\n' + body + '\n' + names + more);
+  }
+}
+
+/* ---------- CUSTOMERS ---------- */
+function addCustomer() {
+  const name = document.getElementById('name').value.trim();
+  const number = document.getElementById('number').value.trim();
+  const bike = document.getElementById('bike').value.trim();
+  const status = document.getElementById('status').value;
+  const followup = document.getElementById('followup').value;
+  const notes = document.getElementById('notes').value.trim();
+
+  if (!name || !number || !bike) { alert('Name, Number, Bike fill చేయండి!'); return; }
+  if (!/^[0-9]{10}$/.test(number)) { alert('Mobile number 10 digits ఉండాలి!'); return; }
+
+  if (editId !== null) {
+    const c = customers.find(x => x.id === editId);
+    Object.assign(c, { name, number, bike, status, followup, notes });
+    cancelEdit();
+  } else {
+    customers.push({ id: Date.now(), name, number, bike, status, followup, notes });
+    clearForm();
+  }
+  save(); renderTable();
+}
+
+function clearForm() {
+  ['name','number','bike','followup','notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('status').value = 'Booked';
+}
+
+function editCustomer(id) {
+  const c = customers.find(x => x.id === id);
+  document.getElementById('name').value = c.name;
+  document.getElementById('number').value = c.number;
+  document.getElementById('bike').value = c.bike;
+  document.getElementById('status').value = c.status;
+  document.getElementById('followup').value = c.followup || '';
+  document.getElementById('notes').value = c.notes || '';
+  editId = id;
+  document.getElementById('formTitle').textContent = '✏️ Edit Customer';
+  document.getElementById('submitBtn').textContent = 'Update Customer';
+  document.getElementById('cancelBtn').style.display = 'inline-block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editId = null; clearForm();
+  document.getElementById('formTitle').textContent = '➕ Add New Customer';
+  document.getElementById('submitBtn').textContent = 'Add Customer';
+  document.getElementById('cancelBtn').style.display = 'none';
+}
+
+function deleteCustomer(id) {
+  if (confirm('ఈ customer ni delete cheyyala?')) {
+    customers = customers.filter(x => x.id !== id);
+    save(); renderTable();
+  }
+}
+
+function followupClass(date) {
+  if (!date) return 'none';
+  const t = todayStr();
+  if (date < t) return 'overdue';
+  if (date === t) return 'today';
+  return 'future';
+}
+
+function followupLabel(date) {
+  if (!date) return '—';
+  const cls = followupClass(date);
+  const d = new Date(date);
+  const fmt = d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  let extra = cls === 'overdue' ? ' ⚠️' : (cls === 'today' ? ' 📅' : '');
+  return fmt + extra;
+}
+
+function escapeHtml(str) {
+  return (str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function renderTable() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const filter = document.getElementById('filter').value;
+  const t = todayStr();
+
+  let list = customers.filter(c => {
+    const matchSearch = c.name.toLowerCase().includes(search) ||
+                        c.number.includes(search) ||
+                        c.bike.toLowerCase().includes(search) ||
+                        (c.notes || '').toLowerCase().includes(search);
+    let matchFilter = true;
+    if (filter === 'Booked' || filter === 'Pending') matchFilter = c.status === filter;
+    else if (filter === 'Today') matchFilter = c.followup === t;
+    else if (filter === 'Overdue') matchFilter = c.followup && c.followup < t;
+    return matchSearch && matchFilter;
+  });
+
+  list.sort((a,b) => {
+    if (!a.followup) return 1;
+    if (!b.followup) return -1;
+    return a.followup.localeCompare(b.followup);
+  });
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No customers found</td></tr>';
+  } else {
+    list.forEach((c, i) => {
+      const cls = followupClass(c.followup);
+      const hasNotes = c.notes && c.notes.trim();
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.number)}</td>
+        <td>${escapeHtml(c.bike)}</td>
+        <td><span class="badge ${c.status.toLowerCase()}">${c.status}</span></td>
+        <td><span class="fdate ${cls}">${followupLabel(c.followup)}</span></td>
+        <td class="notes-cell ${hasNotes?'':'empty-note'}" title="${escapeHtml(c.notes||'')}">${hasNotes ? escapeHtml(c.notes) : 'No notes'}</td>
+        <td class="actions">
+          <button class="edit" onclick="editCustomer(${c.id})">Edit</button>
+          <button class="delete" onclick="deleteCustomer(${c.id})">Del</button>
+        </td>`;
+      tbody.appendChild(row);
+    });
+  }
+
+  document.getElementById('totalCount').textContent = customers.length;
+  document.getElementById('bookedCount').textContent = customers.filter(c => c.status === 'Booked').length;
+  document.getElementById('pendingCount').textContent = customers.filter(c => c.status === 'Pending').length;
+  document.getElementById('todayCount').textContent = customers.filter(c => c.followup === t).length;
+  document.getElementById('overdueCount').textContent = customers.filter(c => c.followup && c.followup < t).length;
+}
+
+/* ---------- INIT ---------- */
+updateEnableBtn();
+renderTable();
+window.addEventListener('load', () => setTimeout(() => notifyTodayFollowups(false), 1500));
+setInterval(() => notifyTodayFollowups(false), 30 * 60 * 1000);
+</script>
+</body>
+  </html>
